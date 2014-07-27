@@ -12,13 +12,17 @@ class TernAppActivatable(GObject.Object, Gedit.AppActivatable):
 
 	def do_activate(self):
 		self.app.add_accelerator("<Alt>F3", "win.selectidentifiers", None)
+		self.app.add_accelerator("<Alt>period", "win.gotodefinition", None)
 
 		self.menu_ext = self.extend_menu("search-section")
 		item = Gio.MenuItem.new(_("Select all references"), "win.selectidentifiers")
 		self.menu_ext.append_menu_item(item)
+		item = Gio.MenuItem.new(_("Go to definition"), "win.gotodefinition")
+		self.menu_ext.append_menu_item(item)
 
 	def do_deactivate(self):
 		self.app.remove_accelerator("win.selectidentifiers", None)
+		self.app.remove_accelerator("win.gotodefinition", None)
 		self.menu_ext = None
 
 class TernWindowActivatable(GObject.Object, Gedit.WindowActivatable):
@@ -26,16 +30,23 @@ class TernWindowActivatable(GObject.Object, Gedit.WindowActivatable):
 
 	def do_activate(self):
 		action = Gio.SimpleAction.new("selectidentifiers", None)
-		action.connect("activate", self.on_activate)
+		action.connect("activate", self.on_selectidentifiers)
+		self.window.add_action(action)
+		action = Gio.SimpleAction.new("gotodefinition", None)
+		action.connect("activate", self.on_gotodefinition)
 		self.window.add_action(action)
 
 	def do_deactivate(self):
 		self.window.remove_action("selectidentifiers")
 
-	def on_activate(self, action, parameter):
+	def on_selectidentifiers(self, action, parameter):
 		view = self.window.get_active_view()
 		if hasattr(view, "tern_view_activatable"):
 			view.tern_view_activatable.do_selectidentifiers()
+	def on_gotodefinition(self, action, parameter):
+		view = self.window.get_active_view()
+		if hasattr(view, "tern_view_activatable"):
+			view.tern_view_activatable.do_gotodefinition()
 
 class TernViewActivatable(GObject.Object, Gedit.ViewActivatable):
 	view = GObject.property(type=Gedit.View)
@@ -78,21 +89,40 @@ class TernViewActivatable(GObject.Object, Gedit.ViewActivatable):
 
 		self.backend = None
 
+	def get_iter(self):
+		buffer = self.view.get_buffer()
+		mark = buffer.get_insert()
+		return buffer.get_iter_at_mark(mark)
+
+	def get_file(self):
+		buffer = self.view.get_buffer()
+		location = buffer.get_location()
+		if location == None:
+			filename = ""
+		else:
+			filename = location.get_path()
+		return filename
+
 	def do_selectidentifiers(self):
 		if (not hasattr(self.view, "multiedit_view_activatable") or
 		    self.backend == None):
 			return
 
 		buffer = self.view.get_buffer()
-		mark = buffer.get_insert()
-		iter = buffer.get_iter_at_mark(mark)
+		iter = self.get_iter()
 
+		try:
+			refs = self.backend.get_identifier_references(iter)["refs"]
+		except:
+			return
 		multiedit = self.view.multiedit_view_activatable
 		multiedit.toggle_multi_edit(True)
-		refs = self.backend.get_identifier_references(iter)["refs"]
 
 		start = iter.copy()
+		file = self.get_file()
 		for ref in refs:
+			if file != ref["file"]:
+				continue
 			if (start.get_offset() >= ref["start"] and
 			    start.get_offset() <= ref["end"]):
 				currentref = ref
@@ -106,4 +136,30 @@ class TernViewActivatable(GObject.Object, Gedit.ViewActivatable):
 		end.set_offset(currentref["end"])
 		buffer.place_cursor(iter)
 		buffer.select_range(start, end)
+
+	def do_gotodefinition(self):
+		if self.backend == None:
+			return
+
+		iter = self.get_iter()
+		file = self.get_file()
+		try:
+			definition = self.backend.get_definition(iter)
+		except:
+			return
+
+		if definition["file"] == file:
+			view = self.view
+			buffer = self.view.get_buffer()
+		else:
+			# TODO: open the file in a new tab
+			return
+
+		start = iter
+		start.set_offset(definition["start"])
+		end = start.copy()
+		end.set_offset(definition["end"])
+		buffer.select_range(start, end)
+
+		view.scroll_to_mark(buffer.get_insert(), 0.1, False, 0, 0)
 

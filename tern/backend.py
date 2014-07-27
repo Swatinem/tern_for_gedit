@@ -85,3 +85,7 @@ class TernBackend():
 			"type": "refs"
 		}))
 
+	def get_definition(self, iter):
+		return req(self.query(iter, {
+			"type": "definition"
+		}))
