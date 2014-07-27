@@ -3,13 +3,13 @@
 import json
 from urllib import request
 from subprocess import Popen, PIPE
-from difflib import SequenceMatcher
+from .filter import filter_completions
 
 opener = request.build_opener(request.ProxyHandler({}))
 
 def ensure_server(retry = False):
 	try:
-		return open('.tern-port').read()
+		return open(".tern-port").read()
 	except IOError as e:
 		if retry:
 			raise e
@@ -63,8 +63,16 @@ class TernBackend():
 		})
 
 		# TODO: moving this into CompletionProvider would make it a lot faster
-		if interactive and res['end'] - res['start'] <= 2:
+		if interactive and res["end"] - res["start"] <= 2:
 			return None
+
+		start = iter.copy()
+		start.set_offset(res["start"])
+		end = iter.copy()
+		end.set_offset(res["end"])
+		name = self.buffer.get_text(start, end, False)
+
+		res["completions"] = filter_completions(name, res["completions"])
 		return res
 
 	def get_identifier_references(self, iter):

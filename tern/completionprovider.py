@@ -19,7 +19,7 @@ class TernCompletionProvider(GObject.Object, GtkSource.CompletionProvider):
 		if self.last_result == None:
 			return context.add_proposals(self, [], True)
 
-		completions = self.last_result['completions']
+		completions = self.last_result["completions"]
 		completions = [Item(x) for x in completions]
 
 		context.add_proposals(self, completions, True)
@@ -28,7 +28,7 @@ class TernCompletionProvider(GObject.Object, GtkSource.CompletionProvider):
 		if self.last_result == None:
 			return False
 		iter.assign(context.get_iter()) # this is just stupid
-		iter.set_offset(self.last_result['start'])
+		iter.set_offset(self.last_result["start"])
 		return True
 
 	def do_activate_proposal(self, proposal, iter):
@@ -38,15 +38,16 @@ class TernCompletionProvider(GObject.Object, GtkSource.CompletionProvider):
 		buffer = iter.get_buffer()
 		start = iter
 		end = iter.copy()
-		start.set_offset(self.last_result['start'])
-		end.set_offset(self.last_result['end'])
+		start.set_offset(self.last_result["start"])
+		end.set_offset(self.last_result["end"])
 		buffer.delete(start, end)
 		buffer.insert(start, proposal.get_text())
 
 def Item(completion):
-	info = completion['type']
-	markup = completion['name'] # markup
-	text = completion['name']
+	markup = completion["markup"]
+	text = completion["name"]
 	icon = None
+	info = completion["type"] # TODO: maybe also add docs + url, format properly?
+
 	return GtkSource.CompletionItem.new_with_markup(markup, text, icon, info)
 

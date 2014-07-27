@@ -7,6 +7,11 @@ based on [tern](https://github.com/marijnh/tern).
 
 Copy `tern.plugin` and `tern/` to `~/.local/share/gedit/plugins/`.
 
+This plugin expects `tern` to be installed globally.
+So if you haven’t already:
+
+    $ sudo npm install --global tern
+
 ## TODO
 
 * *select all occurences* based on terns `refs` for easy renaming,
