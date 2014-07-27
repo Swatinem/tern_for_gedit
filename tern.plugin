@@ -1,0 +1,9 @@
+[Plugin]
+Module=tern
+Loader=python3
+IAge=3
+Name=Code Completion for JavaScript using tern
+Description=This plugin provides code completion and some refactoring utilities for javascript
+Authors=Arpad Borsos <arpad.borsos@googlemail.com>
+Copyright=Copyright © 2014 Arpad Borsos
+Website=https://github.com/Swatinem/tern_for_gedit/
