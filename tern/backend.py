@@ -29,7 +29,7 @@ class TernBackend():
 	def __init__(self, buffer):
 		self.buffer = buffer
 
-	def get_completions(self, iter, interactive):
+	def query(self, iter, q):
 		location = self.buffer.get_location()
 		if location == None:
 			filename = ""
@@ -43,7 +43,18 @@ class TernBackend():
 			"name": filename,
 			"text": text
 		}
-		query = {
+		qdefault = {
+			"file": filename,
+			"end": iter.get_offset()
+		}
+
+		return {
+			"files": [file],
+			"query": dict(list(qdefault.items()) + list(q.items()))
+		}
+
+	def get_completions(self, iter, interactive):
+		q = {
 			"type": "completions",
 			"types": True,
 			"depths": True,
@@ -53,14 +64,8 @@ class TernBackend():
 			#"urls": True,
 			#"origins": True,
 			#"includeKeywords": True,
-
-			"file": "#0",
-			"end": iter.get_offset()
 		}
-		res = req({
-			"files": [file],
-			"query": query
-		})
+		res = req(self.query(iter, q))
 
 		# TODO: moving this into CompletionProvider would make it a lot faster
 		if interactive and res["end"] - res["start"] <= 2:
@@ -76,5 +81,7 @@ class TernBackend():
 		return res
 
 	def get_identifier_references(self, iter):
-		return []
+		return req(self.query(iter, {
+			"type": "refs"
+		}))
 

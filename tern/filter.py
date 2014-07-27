@@ -5,7 +5,11 @@ from difflib import SequenceMatcher
 def filter_completions(name, completions):
 	completions = list(annotate_filter(name, completions))
 	completions = sorted(completions, key=lambda c: c["score"], reverse=True)
-	print(completions)
+
+	# don’t show popup if the name is the only completion and matches exactly
+	if len(completions) == 1 and completions[0]["name"] == name:
+		return []
+
 	return completions
 
 def annotate_filter(name, completions):
