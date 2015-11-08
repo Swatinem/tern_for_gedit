@@ -28,3 +28,6 @@ So if you haven’t already:
 * maybe a function definition popunder to show the expected parameters, like in
   the tern web demo
 
+## License
+
+LGPL-3.0
