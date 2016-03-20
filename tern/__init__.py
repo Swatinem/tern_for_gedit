@@ -46,7 +46,7 @@ class TernWindowActivatable(GObject.Object, Gedit.WindowActivatable):
 	def on_gotodefinition(self, action, parameter):
 		view = self.window.get_active_view()
 		if hasattr(view, "tern_view_activatable"):
-			view.tern_view_activatable.do_gotodefinition()
+			view.tern_view_activatable.do_gotodefinition(self.window)
 
 class TernViewActivatable(GObject.Object, Gedit.ViewActivatable):
 	view = GObject.property(type=Gedit.View)
@@ -57,6 +57,7 @@ class TernViewActivatable(GObject.Object, Gedit.ViewActivatable):
 		self.backend = None
 		self.signal = buffer.connect("notify::language", self.on_language_change)
 		self.on_language_change(None, None)
+		self.bh_handler = 0;
 
 		self.view.tern_view_activatable = self
 
@@ -137,7 +138,7 @@ class TernViewActivatable(GObject.Object, Gedit.ViewActivatable):
 		buffer.place_cursor(iter)
 		buffer.select_range(start, end)
 
-	def do_gotodefinition(self):
+	def do_gotodefinition(self, window):
 		if self.backend == None:
 			return
 
@@ -149,17 +150,29 @@ class TernViewActivatable(GObject.Object, Gedit.ViewActivatable):
 			return
 
 		if definition["file"] == file:
-			view = self.view
-			buffer = self.view.get_buffer()
+			new_view = self.view
 		else:
-			# TODO: open the file in a new tab
+			gfile = Gio.File.new_for_path(definition["file"])
+			tab = window.get_tab_from_location(gfile)
+			if tab == None:
+				tab = window.create_tab_from_location(gfile, None, 0, 20, False, True)
+
+			self.bh_handler = tab.connect("draw", self.do_gotodefinition_bh, None,
+				                            definition)
+			window.set_active_tab(tab)
 			return
 
-		start = iter
-		start.set_offset(definition["start"])
-		end = start.copy()
-		end.set_offset(definition["end"])
+		self.do_gotodefinition_bh(self, None, self.view, definition)
+
+	def do_gotodefinition_bh(self, caller, state, new_view, definition):
+		if new_view == None:
+			new_view = caller.get_view()
+			caller.disconnect(self.bh_handler)
+
+		buffer = new_view.get_buffer()
+		start = buffer.get_iter_at_offset(definition["start"])
+		end = buffer.get_iter_at_offset(definition["end"])
 		buffer.select_range(start, end)
 
-		view.scroll_to_mark(buffer.get_insert(), 0.1, False, 0, 0)
+		new_view.scroll_to_mark(buffer.get_insert(), 0.1, False, 0, 0)
 
