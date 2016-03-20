@@ -12,7 +12,7 @@ class TernCompletionProvider(GObject.Object, GtkSource.CompletionProvider):
 		return "Tern Code Completion"
 
 	def do_populate(self, context):
-		iter = context.get_iter()
+		err, iter = context.get_iter()
 		interactive = context.get_activation() == GtkSource.CompletionActivation.INTERACTIVE
 
 		self.last_result = self.backend.get_completions(iter, interactive)
@@ -24,12 +24,8 @@ class TernCompletionProvider(GObject.Object, GtkSource.CompletionProvider):
 
 		context.add_proposals(self, completions, True)
 
-	def do_get_start_iter(self, context, proposal, iter):
-		if self.last_result == None:
-			return False
-		iter.assign(context.get_iter()) # this is just stupid
-		iter.set_offset(self.last_result["start"])
-		return True
+	def do_get_start_iter(self, context, proposal):
+		return False, None # use default implementation
 
 	def do_activate_proposal(self, proposal, iter):
 		if self.last_result == None:
@@ -46,8 +42,12 @@ class TernCompletionProvider(GObject.Object, GtkSource.CompletionProvider):
 def Item(completion):
 	markup = completion["markup"]
 	text = completion["name"]
+	if "type" in completion:
+		markup += " <i><small>" + completion["type"] + "</small></i>"
 	icon = None
-	info = completion["type"] # TODO: maybe also add docs + url, format properly?
+	info = None
+	if "doc" in completion:
+		info = completion["doc"] # TODO: maybe also add url, format properly?
 
 	return GtkSource.CompletionItem.new_with_markup(markup, text, icon, info)
 
