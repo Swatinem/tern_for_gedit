@@ -61,8 +61,8 @@ class TernBackend():
 			"filter": False,
 			"omitObjectPrototype": False,
 			"docs": True,
-			#"urls": True,
-			#"origins": True,
+			"urls": True,
+			"origins": True,
 			#"includeKeywords": True,
 		}
 		res = req(self.query(iter, q))

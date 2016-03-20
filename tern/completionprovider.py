@@ -1,5 +1,6 @@
 # vim: set shiftwidth=2 tabstop=2 noexpandtab textwidth=80 wrap :
 
+import textwrap
 from gi.repository import GObject, GtkSource
 
 class TernCompletionProvider(GObject.Object, GtkSource.CompletionProvider):
@@ -45,9 +46,14 @@ def Item(completion):
 	if "type" in completion:
 		markup += " <i><small>" + completion["type"] + "</small></i>"
 	icon = None
-	info = None
+	info = ""
 	if "doc" in completion:
-		info = completion["doc"] # TODO: maybe also add url, format properly?
+		info += textwrap.fill(completion["doc"], 80) + "\n\n";
+
+	if "origin" in completion:
+		info += textwrap.fill("<i>" + completion["origin"] + "</i>", 80) +"\n";
+	if "url" in completion:
+		info += textwrap.fill("<i>" + completion["url"] + "</i>", 80);
 
 	return GtkSource.CompletionItem.new_with_markup(markup, text, icon, info)
 
