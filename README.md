@@ -23,11 +23,6 @@ So if you haven’t already:
 
     $ sudo npm install --global tern
 
-## TODO
-
-* maybe a function definition popunder to show the expected parameters, like in
-  the tern web demo
-
 ## License
 
 LGPL-3.0
